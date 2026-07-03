@@ -268,12 +268,13 @@
         .blue-home { background-color: var(--blue); grid-column: 1 / 7; grid-row: 10 / 16; }
         .yellow-home { background-color: var(--yellow); grid-column: 10 / 16; grid-row: 10 / 16; }
 
-        .center-triangle { grid-column: 7 / 10; grid-row: 7 / 10; position: relative; border: 2px solid #2c3e50; background-color: #fff; }
-        .triangle { position: absolute; width: 0; height: 0; border-style: solid; }
-        .t-top { top: 0; left: 0; border-width: 46px 46px 0 46px; border-color: var(--green) transparent transparent transparent; }
-        .t-bottom { bottom: 0; left: 0; border-width: 0 46px 46px 46px; border-color: transparent transparent var(--blue) transparent; }
-        .t-left { top: 0; left: 0; border-width: 46px 0 46px 46px; border-color: transparent transparent transparent var(--red); }
-        .t-right { top: 0; right: 0; border-width: 46px 46px 46px 0; border-color: transparent var(--yellow) transparent transparent; }
+        .center-triangle { grid-column: 7 / 10; grid-row: 7 / 10; position: relative; border: 2px solid #2c3e50; background-color: #fff; overflow: hidden; }
+        .triangle { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        /* çdo trekëndësh mbush qendrën dhe pritet me clip-path drejt qendrës */
+        .t-top    { background: var(--green);  clip-path: polygon(0 0, 100% 0, 50% 50%); }
+        .t-right  { background: var(--yellow); clip-path: polygon(100% 0, 100% 100%, 50% 50%); }
+        .t-bottom { background: var(--blue);   clip-path: polygon(100% 100%, 0 100%, 50% 50%); }
+        .t-left   { background: var(--red);    clip-path: polygon(0 100%, 0 0, 50% 50%); }
 
         .bg-red { background-color: var(--red) !important; }
         .bg-green { background-color: var(--green) !important; }
@@ -1204,9 +1205,13 @@
                     if (nextHomePos <= 104) {
                         token.dataset.pathPos = nextHomePos;
                         placeTokenOnBoard(token, nextHomePos, true);
-                    } else { return; }
-                    if (onlineMode) pushMove({ type: 'move', color: color, tokenId: tokenId, pathPos: nextHomePos, status: token.dataset.status });
-                    endMove(); return;
+                        if (onlineMode) pushMove({ type: 'move', color: color, tokenId: tokenId, pathPos: nextHomePos, status: token.dataset.status });
+                        endMove();
+                    } else {
+                        // s'mund të lëvizë ky gur (kalon 104) → kalo radhën, mos ngec
+                        endMove();
+                    }
+                    return;
                 }
                 let nextPos = currentPos;
                 for (let i = 0; i < currentRoll; i++) {
@@ -1414,7 +1419,16 @@
         function endMove() {
             document.querySelectorAll('.token').forEach(t => t.classList.remove('active-turn'));
             hasRolled = false;
-            if (currentRoll !== 6) nextTurn();
+            isAnimating = false; // siguro që s'mbetet i bllokuar
+            if (currentRoll !== 6) {
+                nextTurn();
+            } else {
+                // roll 6 → luan përsëri. Nëse është kompjuteri, vazhdo automatik.
+                if (gameMode === 'computer' && computerColors.includes(order[turnIdx])) {
+                    setTimeout(computerPlay, 900);
+                }
+                if (onlineMode) updateTurnBanner();
+            }
         }
         function nextTurn() {
             document.querySelectorAll('.token').forEach(t => t.classList.remove('active-turn'));
@@ -1468,6 +1482,8 @@
                 });
 
                 if (movable.length === 0) {
+                    // s'ka lëvizje → kalo radhën (edhe nëse ishte 6)
+                    hasRolled = false;
                     setTimeout(() => { nextTurn(); }, 700);
                     return;
                 }
