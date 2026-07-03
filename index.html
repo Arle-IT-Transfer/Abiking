@@ -219,19 +219,34 @@
         }
 
         .token {
-            width: 26px; height: 32px; position: absolute; z-index: 100; cursor: pointer;
+            width: 26px; height: 34px; position: absolute; z-index: 100; cursor: pointer;
             display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-            filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.4));
-            transition: all 0.2s ease;
+            filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.45));
+            transition: all 0.15s ease;
         }
-        .token::before { content: ""; width: 50%; padding-top: 50%; border-radius: 50%; background: inherit; border: 1.5px solid white; margin-bottom: -15%; z-index: 2; }
-        .token::after { content: ""; width: 90%; height: 60%; background: inherit; border: 1.5px solid white; border-radius: 50% 50% 35% 35% / 80% 80% 20% 20%; z-index: 1; }
-        
+        /* koka e gurit (top rrethor me shkëlqim) */
+        .token::before {
+            content: ""; width: 62%; padding-top: 62%; border-radius: 50%;
+            background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9), inherit 55%), inherit;
+            border: 2px solid white; margin-bottom: -22%; z-index: 2;
+            box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3);
+        }
+        /* trupi/maja poshtë (pin shape) */
+        .token::after {
+            content: ""; width: 78%; height: 68%; background: inherit;
+            border: 2px solid white; z-index: 1;
+            border-radius: 50% 50% 12% 12% / 70% 70% 30% 30%;
+            box-shadow: inset 0 -3px 5px rgba(0,0,0,0.35);
+        }
+
         .token.red { background-color: var(--red); }
         .token.green { background-color: var(--green); }
         .token.yellow { background-color: var(--yellow); }
         .token.blue { background-color: var(--blue); }
-        
+
+        .token.moving { z-index: 300; }
+        .token.hop { transform: translateY(-8px) scale(1.12); }
+
         .token.active-turn { 
             animation: tokenJump 0.5s infinite alternate cubic-bezier(0.25, 1, 0.5, 1); 
             filter: drop-shadow(0px 0px 14px #fff) drop-shadow(0px 5px 3px rgba(0,0,0,0.5));
@@ -256,9 +271,9 @@
         .center-triangle { grid-column: 7 / 10; grid-row: 7 / 10; position: relative; border: 2px solid #2c3e50; background-color: #fff; }
         .triangle { position: absolute; width: 0; height: 0; border-style: solid; }
         .t-top { top: 0; left: 0; border-width: 46px 46px 0 46px; border-color: var(--green) transparent transparent transparent; }
-        .t-bottom { bottom: 0; left: 0; border-width: 0 46px 46px 46px; border-color: transparent transparent var(--yellow) transparent; }
+        .t-bottom { bottom: 0; left: 0; border-width: 0 46px 46px 46px; border-color: transparent transparent var(--blue) transparent; }
         .t-left { top: 0; left: 0; border-width: 46px 0 46px 46px; border-color: transparent transparent transparent var(--red); }
-        .t-right { top: 0; right: 0; border-width: 46px 46px 46px 0; border-color: transparent var(--blue) transparent transparent; }
+        .t-right { top: 0; right: 0; border-width: 46px 46px 46px 0; border-color: transparent var(--yellow) transparent transparent; }
 
         .bg-red { background-color: var(--red) !important; }
         .bg-green { background-color: var(--green) !important; }
@@ -305,7 +320,29 @@
         .btn-save { background: var(--green); color: white; }
         .btn-cancel { background: #64748b; color: white; }
 
-        .win-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; }
+        .win-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; overflow: hidden; }
+        /* konfeti */
+        .confetti-piece { position: absolute; width: 10px; height: 14px; top: -20px; opacity: 0.9; animation: confettiFall linear forwards; z-index: 1001; }
+        @keyframes confettiFall {
+            0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(105vh) rotate(720deg); opacity: 0.8; }
+        }
+        /* fishekzjarrë */
+        .firework { position: absolute; width: 6px; height: 6px; border-radius: 50%; z-index: 1001; animation: fireworkBurst 1s ease-out forwards; }
+        @keyframes fireworkBurst {
+            0% { transform: translate(0,0) scale(1); opacity: 1; }
+            100% { transform: translate(var(--fx), var(--fy)) scale(0.3); opacity: 0; }
+        }
+        /* tabela e renditjes */
+        .ranking-list { list-style: none; padding: 0; margin: 16px 0; width: 300px; max-width: 82vw; }
+        .rank-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; margin: 8px 0; border-radius: 12px; font-weight: bold; font-size: 16px; color: #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: rankSlide 0.5s ease forwards; opacity: 0; }
+        @keyframes rankSlide { from { transform: translateX(-30px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .rank-1 { background: linear-gradient(135deg, #ffd700, #ff9500); font-size: 19px; transform: scale(1.05); }
+        .rank-2 { background: linear-gradient(135deg, #c0c0c0, #8e8e93); }
+        .rank-3 { background: linear-gradient(135deg, #cd7f32, #a05a2c); }
+        .rank-4 { background: linear-gradient(135deg, #5a6474, #3a4252); }
+        .rank-medal { font-size: 24px; }
+        .rank-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid white; }
         .win-box { background: #1e293b; padding: 40px; border-radius: 20px; text-align: center; border: 4px solid #fbbf24; }
         .win-box button { background: #fbbf24; color: #111827; border: none; padding: 10px 25px; font-weight: bold; border-radius: 8px; cursor: pointer; margin-top: 20px; }
 
@@ -327,6 +364,79 @@
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
         .turn-banner { background: rgba(46,213,115,0.15); border: 1px solid var(--green); color: var(--green); padding: 8px 16px; border-radius: 10px; font-weight: bold; margin-bottom: 12px; font-size: 14px; }
         .turn-banner.not-your-turn { background: rgba(255,71,87,0.12); border-color: var(--red); color: #ff8a95; }
+
+        /* ===== PËRSHTATJA PËR TELEFON (VERTIKAL) ===== */
+        @media (max-width: 768px) {
+            body { padding: 6px; }
+            .home-screen { padding: 15px; border-radius: 16px; }
+            .logo-title { font-size: 44px; }
+            .logo-subtitle { font-size: 20px; letter-spacing: 5px; }
+            .crown-icon { font-size: 38px; }
+            .modes-grid { gap: 12px; }
+            .mode-icon { font-size: 24px; }
+            .mode-inner-box { font-size: 13px; padding: 10px; }
+
+            .game-screen { width: 100%; }
+            .top-navigation { padding: 8px 12px; }
+            .game-title-header { font-size: 15px; }
+            .btn-back { padding: 6px 10px; font-size: 13px; }
+
+            /* tabela + profilet të rreshtohen vertikalisht */
+            .game-layout {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                padding: 10px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            /* tabela zë gjerësinë e ekranit (katrore), rresht i plotë */
+            .ludo-board {
+                width: 94vw !important;
+                height: 94vw !important;
+                max-width: 460px;
+                max-height: 460px;
+                grid-column: auto;
+                grid-row: auto;
+                order: 2;
+                flex-basis: 100%;
+                margin: 0 auto;
+            }
+
+            /* profilet e sipërme (kuq + gjelbër) mbi tabelë, krah për krah */
+            #p-red   { order: 1; }
+            #p-green { order: 1; }
+            /* profilet e poshtme (kaltër + verdhë) nën tabelë */
+            #p-blue   { order: 3; }
+            #p-yellow { order: 3; }
+
+            .player-profile {
+                grid-column: auto !important;
+                grid-row: auto !important;
+                align-self: auto !important;
+                padding: 6px 10px;
+                flex-direction: row;
+                gap: 8px;
+                width: 42%;
+                box-sizing: border-box;
+            }
+            .profile-avatar { font-size: 22px; margin-bottom: 0; }
+            .profile-name { font-size: 12px; }
+            .profile-country { font-size: 9px; }
+            .profile-coins { font-size: 10px; margin-top: 0; }
+
+            /* rreshto dy profilet krah për krah */
+            .profiles-row { display: flex; gap: 10px; justify-content: center; width: 100%; }
+
+            .token { width: 18px; height: 22px; }
+            .dice-container { width: 56px; height: 56px; }
+            .controls { margin-top: 12px; }
+            .turn-banner { font-size: 13px; padding: 6px 12px; }
+        }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
@@ -388,7 +498,7 @@
         <div class="top-navigation">
             <button class="btn-back" id="btnBack" onclick="backToMenu()">⬅ Kthehu në Menu</button>
             <div class="game-title-header" id="activeModeTitle">Abi King</div>
-            <div style="width: 120px;"></div> 
+            <button class="btn-back" id="btnSound" onclick="toggleSound()" style="width: 120px;">🔊 Zëri</button>
         </div>
 
         <div class="game-layout">
@@ -441,27 +551,27 @@
     <!-- ONLINE DHOMA -->
     <div class="room-modal" id="roomModal">
         <div class="room-box" id="roomBoxMenu">
-            <h2>🌐 Luaj me Shokët</h2>
-            <button class="room-btn room-btn-create" onclick="createRoom()">➕ Krijo Dhomë</button>
-            <button class="room-btn room-btn-join" onclick="showJoinInput()">🔑 Bashkohu me Kod</button>
-            <button class="room-btn room-btn-cancel" onclick="closeRoomModal()">Anulo</button>
+            <h2 id="room-title">🌐 Luaj me Shokët</h2>
+            <button class="room-btn room-btn-create" id="room-btn-create" onclick="createRoom()">➕ Krijo Dhomë</button>
+            <button class="room-btn room-btn-join" id="room-btn-join" onclick="showJoinInput()">🔑 Bashkohu me Kod</button>
+            <button class="room-btn room-btn-cancel" id="room-btn-cancel" onclick="closeRoomModal()">Anulo</button>
         </div>
 
         <div class="room-box" id="roomBoxJoin" style="display:none;">
-            <h2>🔑 Shkruaj Kodin</h2>
+            <h2 id="room-join-title">🔑 Shkruaj Kodin</h2>
             <input type="text" class="room-input" id="joinCodeInput" maxlength="4" placeholder="XXXX">
-            <button class="room-btn room-btn-join" onclick="joinRoom()">Hyr</button>
-            <button class="room-btn room-btn-cancel" onclick="backToRoomMenu()">Kthehu</button>
+            <button class="room-btn room-btn-join" id="room-btn-enter" onclick="joinRoom()">Hyr</button>
+            <button class="room-btn room-btn-cancel" id="room-btn-back" onclick="backToRoomMenu()">Kthehu</button>
         </div>
 
         <div class="room-box" id="roomBoxWait" style="display:none;">
-            <h2>Dhoma Jote</h2>
-            <div class="room-status">Ndaje këtë kod me shokët:</div>
+            <h2 id="room-wait-title">Dhoma Jote</h2>
+            <div class="room-status" id="room-share-text">Ndaje këtë kod me shokët:</div>
             <div class="room-code-display" id="roomCodeDisplay">----</div>
             <div class="room-players-list" id="roomPlayersList"></div>
             <div class="room-status" id="roomWaitStatus"><span class="waiting-dot"></span> Duke pritur lojtarë...</div>
             <button class="room-btn room-btn-create" id="startOnlineBtn" onclick="startOnlineGame()" style="display:none;">▶ Fillo Lojën</button>
-            <button class="room-btn room-btn-cancel" onclick="leaveRoom()">Dil nga Dhoma</button>
+            <button class="room-btn room-btn-cancel" id="room-btn-leave" onclick="leaveRoom()">Dil nga Dhoma</button>
         </div>
     </div>
 
@@ -485,6 +595,7 @@
         <div class="win-box">
             <h1 id="w-title">Fitore! 🏆</h1>
             <p id="winnerMessage"></p>
+            <ul class="ranking-list" id="rankingList"></ul>
             <button id="w-btn" onclick="location.reload()">Luaj Përsëri</button>
         </div>
     </div>
@@ -502,6 +613,61 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
+
+        // ===== TINGUJT (Web Audio - gjenerohen, pa skedarë) =====
+        let audioCtx = null;
+        let soundOn = true;
+        function initAudio() {
+            if (!audioCtx) {
+                try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+                catch(e) { soundOn = false; }
+            }
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        }
+        // një ton i thjeshtë
+        function beep(freq, dur, type = 'sine', vol = 0.2, delay = 0) {
+            if (!soundOn || !audioCtx) return;
+            const t = audioCtx.currentTime + delay;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, t);
+            gain.gain.setValueAtTime(0.0001, t);
+            gain.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(t); osc.stop(t + dur + 0.02);
+        }
+        // ZARI: seri klikimesh të shpejta (si rrotullim)
+        function soundDice() {
+            if (!soundOn || !audioCtx) return;
+            for (let i = 0; i < 6; i++) {
+                beep(320 + Math.random() * 260, 0.05, 'square', 0.12, i * 0.08);
+            }
+            beep(520, 0.12, 'triangle', 0.2, 0.5); // "ulja" e zarit
+        }
+        // HAPI: një "tik" i shkurtër kur guri ecën
+        function soundStep() {
+            beep(660, 0.06, 'triangle', 0.18);
+        }
+        // KAPJA: rënie tonesh (whoosh) kur heq gurin
+        function soundCapture() {
+            if (!soundOn || !audioCtx) return;
+            beep(700, 0.1, 'sawtooth', 0.22, 0);
+            beep(500, 0.1, 'sawtooth', 0.22, 0.08);
+            beep(300, 0.18, 'sawtooth', 0.22, 0.16);
+        }
+        // FITORJA
+        function soundWin() {
+            [523, 659, 784, 1047].forEach((f, i) => beep(f, 0.25, 'triangle', 0.25, i * 0.15));
+        }
+        // ndez/fik zërin
+        function toggleSound() {
+            soundOn = !soundOn;
+            const btn = document.getElementById('btnSound');
+            if (btn) btn.innerText = soundOn ? "🔊 Zëri" : "🔇 Zëri";
+            if (soundOn) initAudio();
+        }
 
         // ===== ONLINE STATE =====
         let onlineMode = false;      // a jemi në lojë online
@@ -521,6 +687,7 @@
         function openRoomModal() {
             document.getElementById('roomModal').style.display = 'flex';
             backToRoomMenu();
+            changeLanguage(); // apliko përkthimin te dhoma
         }
         function closeRoomModal() { document.getElementById('roomModal').style.display = 'none'; }
         function showJoinInput() {
@@ -544,7 +711,7 @@
             roomCode = genCode();
             myColor = "red";
             isHost = true;
-            const myName = "Ti";
+            const myName = L().you;
             roomRef = db.ref('rooms/' + roomCode);
             roomRef.set({
                 host: myColor,
@@ -567,21 +734,21 @@
         // ===== BASHKOHU =====
         function joinRoom() {
             const code = document.getElementById('joinCodeInput').value.toUpperCase().trim();
-            if (code.length !== 4) { alert("Kodi duhet të ketë 4 shkronja"); return; }
+            if (code.length !== 4) { alert(L().codeLen); return; }
             const ref = db.ref('rooms/' + code);
             ref.once('value').then(snap => {
-                if (!snap.exists()) { alert("Dhoma nuk u gjet!"); return; }
+                if (!snap.exists()) { alert(L().roomNotFound); return; }
                 const data = snap.val();
-                if (data.status !== "waiting") { alert("Loja ka filluar ose ka mbaruar."); return; }
+                if (data.status !== "waiting") { alert(L().gameStarted); return; }
                 const players = data.players || {};
                 const taken = Object.keys(players);
                 const free = colorOrder.find(c => !taken.includes(c));
-                if (!free) { alert("Dhoma është plot (4 lojtarë)."); return; }
+                if (!free) { alert(L().roomFull); return; }
                 roomCode = code;
                 myColor = free;
                 isHost = false;
                 roomRef = db.ref('rooms/' + roomCode);
-                roomRef.child('players/' + myColor).set({ name: "Ti", joined: true }).then(() => {
+                roomRef.child('players/' + myColor).set({ name: L().you, joined: true }).then(() => {
                     document.getElementById('roomCodeDisplay').innerText = roomCode;
                     showWaitRoom();
                     listenRoom();
@@ -594,7 +761,7 @@
         function listenRoom() {
             roomRef.on('value', snap => {
                 const data = snap.val();
-                if (!data) { alert("Dhoma u mbyll."); leaveRoom(); return; }
+                if (!data) { alert(L().roomClosed); leaveRoom(); return; }
                 updateRoomUI(data);
                 if (data.status === "playing" && !onlineMode) {
                     enterOnlineGame(data);
@@ -618,7 +785,7 @@
             });
             const count = Object.keys(players).length;
             document.getElementById('roomWaitStatus').innerHTML =
-                `<span class="waiting-dot"></span> ${count}/4 lojtarë në dhomë`;
+                `<span class="waiting-dot"></span> ${count}/4 ${L().playersInRoom}`;
             // vetëm hosti sheh butonin fillo, dhe vetëm nëse ka 2+ lojtarë
             const startBtn = document.getElementById('startOnlineBtn');
             if (isHost && count >= 2) startBtn.style.display = 'block';
@@ -644,19 +811,46 @@
             sq: {
                 comp: "Kompjuter", local: "Lokal", online: "Lojë Online", friends: "Me Shokët",
                 players: "Lojtarë", back: "⬅ Kthehu në Menu", editTitle: "Ndrysho Profilin", emoji: "Zgjedh Emojin:",
-                name: "Emri:", cancel: "Anulo", save: "Ruaj", win: "Vendi i Parë! 🏆", replay: "Luaj Përsëri", winMsg: "Lojtari <b>{name}</b> fitoi lojën!"
+                name: "Emri:", cancel: "Anulo", save: "Ruaj", win: "Vendi i Parë! 🏆", replay: "Luaj Përsëri", winMsg: "Lojtari <b>{name}</b> fitoi lojën!",
+                sound: "Zëri", you: "Ti", player: "Lojtar",
+                roomTitle: "🌐 Luaj me Shokët", createRoom: "➕ Krijo Dhomë", joinRoom: "🔑 Bashkohu me Kod",
+                enterCode: "🔑 Shkruaj Kodin", enter: "Hyr", backBtn: "Kthehu", yourRoom: "Dhoma Jote",
+                shareCode: "Ndaje këtë kod me shokët:", waiting: "Duke pritur lojtarë...", startGameBtn: "▶ Fillo Lojën",
+                leaveRoom: "Dil nga Dhoma", playersInRoom: "lojtarë në dhomë", yourTurn: "🎲 Radha jote! Hidh zarin.",
+                waitTurn: "⏳ Radha e", roomNotFound: "Dhoma nuk u gjet!", gameStarted: "Loja ka filluar ose ka mbaruar.",
+                roomFull: "Dhoma është plot (4 lojtarë).", codeLen: "Kodi duhet të ketë 4 shkronja", roomClosed: "Dhoma u mbyll.",
+                rankTitle: "🏆 Renditja", place: "Vendi", finished: "Loja Mbaroi!"
             },
             en: {
                 comp: "Computer", local: "Local", online: "Online", friends: "With Friends",
                 players: "Players", back: "⬅ Back to Menu", editTitle: "Edit Profile", emoji: "Choose Emoji:",
-                name: "Name:", cancel: "Cancel", save: "Save", win: "1st Place! 🏆", replay: "Play Again", winMsg: "Player <b>{name}</b> won the game!"
+                name: "Name:", cancel: "Cancel", save: "Save", win: "1st Place! 🏆", replay: "Play Again", winMsg: "Player <b>{name}</b> won the game!",
+                sound: "Sound", you: "You", player: "Player",
+                roomTitle: "🌐 Play with Friends", createRoom: "➕ Create Room", joinRoom: "🔑 Join with Code",
+                enterCode: "🔑 Enter Code", enter: "Enter", backBtn: "Back", yourRoom: "Your Room",
+                shareCode: "Share this code with friends:", waiting: "Waiting for players...", startGameBtn: "▶ Start Game",
+                leaveRoom: "Leave Room", playersInRoom: "players in room", yourTurn: "🎲 Your turn! Roll the dice.",
+                waitTurn: "⏳ Turn of", roomNotFound: "Room not found!", gameStarted: "Game already started or finished.",
+                roomFull: "Room is full (4 players).", codeLen: "Code must be 4 letters", roomClosed: "Room closed.",
+                rankTitle: "🏆 Ranking", place: "Place", finished: "Game Over!"
             },
             de: {
                 comp: "Computer", local: "Lokal", online: "Online", friends: "Mit Freunden",
                 players: "Spieler", back: "⬅ Zurück zum Menü", editTitle: "Profil bearbeiten", emoji: "Emoji wählen:",
-                name: "Name:", cancel: "Abbrechen", save: "Speichern", win: "1. Platz! 🏆", replay: "Nochmal spielen", winMsg: "Spieler <b>{name}</b> hat gewonnen!"
+                name: "Name:", cancel: "Abbrechen", save: "Speichern", win: "1. Platz! 🏆", replay: "Nochmal spielen", winMsg: "Spieler <b>{name}</b> hat gewonnen!",
+                sound: "Ton", you: "Du", player: "Spieler",
+                roomTitle: "🌐 Mit Freunden spielen", createRoom: "➕ Raum erstellen", joinRoom: "🔑 Mit Code beitreten",
+                enterCode: "🔑 Code eingeben", enter: "Beitreten", backBtn: "Zurück", yourRoom: "Dein Raum",
+                shareCode: "Teile diesen Code mit Freunden:", waiting: "Warte auf Spieler...", startGameBtn: "▶ Spiel starten",
+                leaveRoom: "Raum verlassen", playersInRoom: "Spieler im Raum", yourTurn: "🎲 Du bist dran! Würfle.",
+                waitTurn: "⏳ Am Zug:", roomNotFound: "Raum nicht gefunden!", gameStarted: "Spiel bereits gestartet oder beendet.",
+                roomFull: "Raum ist voll (4 Spieler).", codeLen: "Code muss 4 Buchstaben haben", roomClosed: "Raum geschlossen.",
+                rankTitle: "🏆 Rangliste", place: "Platz", finished: "Spiel vorbei!"
             }
         };
+
+        // gjuha aktuale (helper)
+        function L() { return langPack[document.getElementById('langSelect').value] || langPack.sq; }
 
         function changeLanguage() {
             const lang = document.getElementById('langSelect').value;
@@ -680,6 +874,23 @@
             document.getElementById('m-btn-sav').innerText = data.save;
             document.getElementById('w-title').innerText = data.win;
             document.getElementById('w-btn').innerText = data.replay;
+
+            // ===== Butoni i zërit =====
+            const sBtn = document.getElementById('btnSound');
+            if (sBtn) sBtn.innerText = (soundOn ? "🔊 " : "🔇 ") + data.sound;
+
+            // ===== Dhoma online =====
+            const set = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+            set('room-title', data.roomTitle);
+            set('room-btn-create', data.createRoom);
+            set('room-btn-join', data.joinRoom);
+            set('room-join-title', data.enterCode);
+            set('room-btn-enter', data.enter);
+            set('room-btn-back', data.backBtn);
+            set('room-wait-title', data.yourRoom);
+            set('room-share-text', data.shareCode);
+            set('startOnlineBtn', data.startGameBtn);
+            set('room-btn-leave', data.leaveRoom);
         }
 
         function startGame(modeName) {
@@ -696,23 +907,37 @@
             if(modeName === 'Computer') displayMode = langPack[lang].comp;
             if(modeName === 'Local Multiplayer') displayMode = langPack[lang].local;
 
+            // vendos modin: te Computer DHE Local, ti luan vetëm red, tjerët automatik
+            gameMode = (modeName === 'Computer' || modeName === 'Local Multiplayer') ? 'computer' : 'local';
+            finishOrder = []; // rifillo renditjen
+            if (gameMode === 'computer') {
+                // ti je red; green/yellow/blue luajnë automatik
+                document.getElementById('name-red').innerText = L().you;
+                document.getElementById('name-green').innerText = L().player + " 2";
+                document.getElementById('name-yellow').innerText = L().player + " 3";
+                document.getElementById('name-blue').innerText = L().player + " 4";
+            }
+
             document.getElementById('activeModeTitle').innerText = "Abi King (" + displayMode + ")";
+            changeLanguage(); // sigurohu që ekrani i lojës është në gjuhën e zgjedhur
         }
 
         // ===== HYRJA NË LOJË ONLINE =====
         function enterOnlineGame(data) {
             onlineMode = true;
+            gameMode = 'online'; // online: pa AI, çdo lojtar luan vetë
+            finishOrder = []; // rifillo renditjen
             closeRoomModal();
             document.getElementById('homeScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'flex';
-            document.getElementById('activeModeTitle').innerText = "Abi King (Online) - Ti je " + myColor.toUpperCase();
+            document.getElementById('activeModeTitle').innerText = "Abi King (Online) - " + L().you + ": " + myColor.toUpperCase();
 
             // vendos emrat e lojtarëve realë; hiq profilet boshe
             const players = data.players || {};
             colorOrder.forEach(c => {
                 const profile = document.getElementById('p-' + c);
                 if (players[c]) {
-                    const nm = (c === myColor) ? "Ti (" + c + ")" : players[c].name;
+                    const nm = (c === myColor) ? L().you + " (" + c + ")" : players[c].name;
                     document.getElementById('name-' + c).innerText = nm;
                 } else {
                     // lojtar që s'ekziston - errëso profilin
@@ -737,10 +962,10 @@
             const currentColor = order[turnIdx];
             if (currentColor === myColor) {
                 banner.className = 'turn-banner';
-                banner.innerText = "🎲 Radha jote! Hidh zarin.";
+                banner.innerText = L().yourTurn;
             } else {
                 banner.className = 'turn-banner not-your-turn';
-                banner.innerText = "⏳ Radha e " + currentColor + "...";
+                banner.innerText = L().waitTurn + " " + currentColor + "...";
             }
         }
 
@@ -775,6 +1000,7 @@
 
         function showRemoteDice(roll) {
             const dice = document.getElementById('dice');
+            soundDice(); // 🔊 zari i shokut online
             dice.classList.add('dice-spinning');
             setTimeout(() => {
                 dice.classList.remove('dice-spinning');
@@ -797,6 +1023,9 @@
                 const coord = isHomePath ? homePaths[color][pathPos - 100] : mainPath[pathPos];
                 token.style.display = '';
                 cellsMap[coord].appendChild(token);
+                soundStep(); // 🔊 hapi i shokut online
+                token.classList.add('hop');
+                setTimeout(() => token.classList.remove('hop'), 140);
             }
         }
 
@@ -806,6 +1035,7 @@
             token.dataset.status = "home";
             token.dataset.pathPos = "-1";
             document.getElementById(`${color}-p${tokenId}`).appendChild(token);
+            soundCapture(); // 🔊 kapja online
         }
 
         // dërgo një veprim te Firebase
@@ -869,6 +1099,9 @@
         };
         
         const order = ["red", "green", "yellow", "blue"];
+        let finishOrder = []; // renditja e lojtarëve që mbarojnë
+        let gameMode = 'local'; // 'local' | 'computer'
+        const computerColors = ["green", "yellow", "blue"]; // kur mode=computer
         let turnIdx = 0; let currentRoll = 0; let hasRolled = false;
 
         order.forEach(color => {
@@ -903,10 +1136,14 @@
 
         function rollDice() {
             if (hasRolled) return;
+            initAudio(); // aktivizo tingujt me prekjen e parë
             // ONLINE: vetëm në radhën tënde
             if (onlineMode && order[turnIdx] !== myColor) return;
+            // COMPUTER MODE: njeriu hedh zarin vetëm në radhën e vet (red)
+            if (gameMode === 'computer' && order[turnIdx] !== 'red') return;
             const dice = document.getElementById('dice');
             currentRoll = Math.floor(Math.random() * 6) + 1;
+            soundDice(); // 🔊 tingulli i zarit
 
             // ONLINE: dërgo zarin te shokët
             if (onlineMode) pushMove({ type: 'roll', roll: currentRoll });
@@ -1010,6 +1247,7 @@
                             t.dataset.status = "home";
                             t.dataset.pathPos = "-1";
                             document.getElementById(`${otherColor}-p${t.dataset.id}`).appendChild(t);
+                            soundCapture(); // 🔊 tingulli i kapjes
                             if (onlineMode) pushMove({ type: 'capture', capturedColor: otherColor, capturedTokenId: parseInt(t.dataset.id) });
                         }
                     }
@@ -1027,13 +1265,150 @@
             }
             let coord = isHomePath ? homePaths[color][pathIdx - 100] : mainPath[pathIdx];
             cellsMap[coord].appendChild(token);
+            soundStep(); // 🔊 tingulli i hapit
+            // efekt hop kur ulet
+            token.classList.add('hop');
+            setTimeout(() => token.classList.remove('hop'), 140);
+        }
+
+        // ===== ANIMACION: guri ecën qelizë-për-qelizë =====
+        let isAnimating = false;
+        function animateMove(token, fromIdx, steps, color, onDone) {
+            isAnimating = true;
+            token.classList.add('moving');
+            let done = 0;
+            let cur = fromIdx;
+            const stepper = () => {
+                if (done >= steps) {
+                    token.classList.remove('moving');
+                    isAnimating = false;
+                    if (onDone) onDone();
+                    return;
+                }
+                // llogarit qelizën e radhës
+                if (cur >= 100) {
+                    cur = cur + 1;
+                } else if (cur === players[color].lastIdx) {
+                    cur = 100;
+                } else {
+                    cur = (cur + 1) % 52;
+                }
+                // vendos përkohësisht
+                if (cur >= 100) {
+                    if (cur <= 104) {
+                        const coord = homePaths[color][cur - 100];
+                        if (cellsMap[coord]) cellsMap[coord].appendChild(token);
+                    }
+                } else {
+                    const coord = mainPath[cur];
+                    if (cellsMap[coord]) cellsMap[coord].appendChild(token);
+                }
+                token.classList.add('hop');
+                setTimeout(() => token.classList.remove('hop'), 130);
+                done++;
+                setTimeout(stepper, 160);
+            };
+            stepper();
         }
 
         function checkWinCondition(color) {
             if (players[color].tokens.every(t => t.dataset.status === "finished")) {
-                const lang = document.getElementById('langSelect').value;
-                document.getElementById('winnerMessage').innerHTML = langPack[lang].winMsg.replace("{name}", players[color].name);
-                document.getElementById('winOverlay').style.display = 'flex';
+                // shto lojtarin në renditje (nëse s'është shtuar)
+                if (!finishOrder.includes(color)) {
+                    finishOrder.push(color);
+                    soundWin(); // 🔊
+                }
+
+                // sa lojtarë ka gjithsej në lojë?
+                let totalPlayers = order.length;
+                if (onlineMode) {
+                    totalPlayers = order.filter(c =>
+                        document.getElementById('p-' + c) &&
+                        document.getElementById('p-' + c).style.opacity !== "0.3").length;
+                }
+
+                // loja mbaron kur mbetet vetëm 1 lojtar (ose të gjithë mbaruan)
+                if (finishOrder.length >= totalPlayers - 1) {
+                    // shto lojtarin e fundit që s'ka mbaruar
+                    order.forEach(c => {
+                        if (!finishOrder.includes(c)) {
+                            if (!onlineMode || (document.getElementById('p-' + c) &&
+                                document.getElementById('p-' + c).style.opacity !== "0.3")) {
+                                finishOrder.push(c);
+                            }
+                        }
+                    });
+                    showFinalRanking();
+                }
+            }
+        }
+
+        function showFinalRanking() {
+            const lang = document.getElementById('langSelect').value;
+            const data = langPack[lang];
+            document.getElementById('w-title').innerText = data.finished;
+
+            // fituesi (vendi i parë)
+            const winnerColor = finishOrder[0];
+            document.getElementById('winnerMessage').innerHTML =
+                data.winMsg.replace("{name}", players[winnerColor].name);
+
+            // tabela e renditjes
+            const medals = ["🥇", "🥈", "🥉", "4️⃣"];
+            const list = document.getElementById('rankingList');
+            list.innerHTML = '';
+            finishOrder.forEach((color, i) => {
+                const li = document.createElement('li');
+                li.className = 'rank-item rank-' + (i + 1);
+                li.style.animationDelay = (i * 0.2) + 's';
+                li.innerHTML = `
+                    <span class="rank-medal">${medals[i]}</span>
+                    <span class="rank-dot" style="background:var(--${color})"></span>
+                    <span>${data.place} ${i + 1}: ${players[color].name}</span>`;
+                list.appendChild(li);
+            });
+
+            document.getElementById('winOverlay').style.display = 'flex';
+            launchCelebration();
+        }
+
+        // ===== KONFETI + FISHEKZJARRË =====
+        function launchCelebration() {
+            const overlay = document.getElementById('winOverlay');
+            const colors = ['#ffd700', '#ff4757', '#2ed573', '#1e90ff', '#ff6348', '#ffa502', '#e84393'];
+            // konfeti
+            for (let i = 0; i < 80; i++) {
+                const c = document.createElement('div');
+                c.className = 'confetti-piece';
+                c.style.left = Math.random() * 100 + '%';
+                c.style.background = colors[Math.floor(Math.random() * colors.length)];
+                c.style.animationDuration = (2 + Math.random() * 2) + 's';
+                c.style.animationDelay = Math.random() * 1.5 + 's';
+                if (Math.random() > 0.5) c.style.borderRadius = '50%';
+                overlay.appendChild(c);
+                setTimeout(() => c.remove(), 5000);
+            }
+            // fishekzjarrë (disa shpërthime)
+            for (let b = 0; b < 5; b++) {
+                setTimeout(() => {
+                    const cx = 20 + Math.random() * 60;
+                    const cy = 20 + Math.random() * 40;
+                    const col = colors[Math.floor(Math.random() * colors.length)];
+                    for (let p = 0; p < 24; p++) {
+                        const spark = document.createElement('div');
+                        spark.className = 'firework';
+                        spark.style.left = cx + '%';
+                        spark.style.top = cy + '%';
+                        spark.style.background = col;
+                        const ang = (p / 24) * Math.PI * 2;
+                        const dist = 60 + Math.random() * 50;
+                        spark.style.setProperty('--fx', Math.cos(ang) * dist + 'px');
+                        spark.style.setProperty('--fy', Math.sin(ang) * dist + 'px');
+                        overlay.appendChild(spark);
+                        setTimeout(() => spark.remove(), 1100);
+                    }
+                    soundWin();
+                }, b * 700);
             }
         }
         function endMove() {
@@ -1062,6 +1437,50 @@
                 roomRef.update({ turnIdx: turnIdx, lastMove: { type: 'turn', by: myColor, ts: Date.now() } });
                 updateTurnBanner();
             }
+
+            // ===== KOMPJUTERI LUAN VETË =====
+            if (gameMode === 'computer' && computerColors.includes(order[turnIdx])) {
+                setTimeout(computerPlay, 900);
+            }
+        }
+
+        // ===== AI: kompjuteri hedh zarin dhe lëviz =====
+        function computerPlay() {
+            if (isAnimating) { setTimeout(computerPlay, 400); return; }
+            const color = order[turnIdx];
+            const dice = document.getElementById('dice');
+            currentRoll = Math.floor(Math.random() * 6) + 1;
+            soundDice(); // 🔊 zari i kompjuterit
+            dice.classList.add('dice-spinning');
+
+            setTimeout(() => {
+                dice.classList.remove('dice-spinning');
+                dice.className = `dice-container dice-${currentRoll}`;
+                hasRolled = true;
+
+                // gjej gurët që mund të lëvizin
+                const movable = players[color].tokens.filter(t => {
+                    const pos = parseInt(t.dataset.pathPos);
+                    if (t.dataset.status === "home" && currentRoll === 6) return true;
+                    if (t.dataset.status === "board" && pos < 100) return true;
+                    if (t.dataset.status === "board" && pos >= 100 && pos + currentRoll <= 104) return true;
+                    return false;
+                });
+
+                if (movable.length === 0) {
+                    setTimeout(() => { nextTurn(); }, 700);
+                    return;
+                }
+
+                // strategji: prefero daljen nga shtëpia me 6, ndryshe guri më i përparuar
+                let choice = movable.find(t => t.dataset.status === "home" && currentRoll === 6);
+                if (!choice) {
+                    choice = movable.reduce((best, t) =>
+                        parseInt(t.dataset.pathPos) > parseInt(best.dataset.pathPos) ? t : best, movable[0]);
+                }
+
+                setTimeout(() => { moveToken(choice); }, 500);
+            }, 600);
         }
     </script>
     <script>
