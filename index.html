@@ -17,6 +17,7 @@
             --yellow: #ffa502;
             --blue: #1e90ff;
             --white: #ffffff;
+            --tok-w: 30px; --tok-h: 40px;
             --glass-bg: rgba(7, 26, 64, 0.5);
             --glass-border: rgba(255, 255, 255, 0.15);
             --glass-blur: blur(12px);
@@ -216,7 +217,7 @@
         }
 
         .token {
-            width: 30px; height: 40px; position: absolute; z-index: 100; cursor: pointer;
+            width: var(--tok-w); height: var(--tok-h); position: absolute; z-index: 100; cursor: pointer;
             display: flex; align-items: center; justify-content: center;
             filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.5));
             transition: transform 0.15s ease;
@@ -428,7 +429,7 @@
             /* rreshto dy profilet krah për krah */
             .profiles-row { display: flex; gap: 10px; justify-content: center; width: 100%; }
 
-            .token { width: 22px; height: 29px; }
+            .token { --tok-w: 22px; --tok-h: 29px; }
             .dice-container { width: 56px; height: 56px; }
             .controls { margin-top: 12px; }
             .turn-banner { font-size: 13px; padding: 6px 12px; }
@@ -1023,6 +1024,7 @@
                 token.classList.add('hop');
                 setTimeout(() => token.classList.remove('hop'), 140);
             }
+            relayoutTokens();
         }
 
         function applyCapture(color, tokenId) {
@@ -1030,8 +1032,49 @@
             if (!token) return;
             token.dataset.status = "home";
             token.dataset.pathPos = "-1";
+            resetTokenStack(token);
             document.getElementById(`${color}-p${tokenId}`).appendChild(token);
             soundCapture(); // 🔊 kapja online
+            relayoutTokens();
+        }
+
+        // ===== SHPËRNDARJA E FIGURAVE KUR MBIVENDOSEN NË NJË QELI =====
+        function resetTokenStack(t) {
+            t.style.width = ''; t.style.height = '';
+            t.style.marginLeft = ''; t.style.marginTop = ''; t.style.zIndex = '';
+        }
+        function stackScale(n) {
+            return n <= 1 ? 1 : n === 2 ? 0.64 : n === 3 ? 0.56 : n === 4 ? 0.5 : 0.44;
+        }
+        function stackOffsets(n) {
+            if (n === 1) return [[0, 0]];
+            if (n === 2) return [[-6, -4], [6, 4]];
+            if (n === 3) return [[0, -7], [-7, 5], [7, 5]];
+            if (n === 4) return [[-7, -6], [7, -6], [-7, 6], [7, 6]];
+            const arr = [], R = 8; // 5+ figura: rreth
+            for (let i = 0; i < n; i++) {
+                const a = -Math.PI / 2 + i * 2 * Math.PI / n;
+                arr.push([Math.round(Math.cos(a) * R), Math.round(Math.sin(a) * R)]);
+            }
+            return arr;
+        }
+        // rirendit të gjitha qelizat: nëse >1 figurë, zvogëlon dhe shpërndan
+        function relayoutTokens() {
+            Object.values(cellsMap).forEach(cell => {
+                const toks = Array.from(cell.querySelectorAll('.token'))
+                    .filter(t => t.style.display !== 'none');
+                const n = toks.length;
+                if (n === 0) return;
+                if (n === 1) { resetTokenStack(toks[0]); return; }
+                const s = stackScale(n), offs = stackOffsets(n);
+                toks.forEach((t, i) => {
+                    t.style.width = `calc(var(--tok-w) * ${s})`;
+                    t.style.height = `calc(var(--tok-h) * ${s})`;
+                    t.style.marginLeft = offs[i][0] + 'px';
+                    t.style.marginTop = offs[i][1] + 'px';
+                    t.style.zIndex = 100 + i;
+                });
+            });
         }
 
         // dërgo një veprim te Firebase
@@ -1220,6 +1263,7 @@
             let currentPos = parseInt(token.dataset.pathPos);
             const tokenId = parseInt(token.dataset.id);
             extraTurn = false; // rivendos; aktivizohet nga kapja ose mbërritja në shtëpi
+            resetTokenStack(token); // figura që lëviz kthehet në madhësi të plotë
 
             // ===== DALJE NGA SHTËPIA (me 6) =====
             if (status === "home" && currentRoll === 6) {
@@ -1336,6 +1380,7 @@
                             // KAPU! kthehu në shtëpi
                             t.dataset.status = "home";
                             t.dataset.pathPos = "-1";
+                            resetTokenStack(t);
                             document.getElementById(`${otherColor}-p${t.dataset.id}`).appendChild(t);
                             extraTurn = true; // e hëngri një gur -> hedhje shtesë
                             soundCapture(); // 🔊 tingulli i kapjes
@@ -1536,6 +1581,7 @@
         }
         function endMove() {
             document.querySelectorAll('.token').forEach(t => t.classList.remove('active-turn'));
+            relayoutTokens(); // shpërnda figurat që janë bashkë në një qeli
             hasRolled = false;
             isAnimating = false; // siguro që s'mbetet i bllokuar
             const playAgain = ((currentRoll === 6) || extraTurn) && !isPlayerDone(order[turnIdx]);
