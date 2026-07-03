@@ -572,6 +572,16 @@
         </div>
     </div>
 
+    <div class="room-modal" id="setupModal">
+        <div class="room-box">
+            <h2 id="setupTitle">Sa lojtarë?</h2>
+            <button class="room-btn room-btn-create" onclick="beginGame(2)">2 👤👤</button>
+            <button class="room-btn room-btn-join" onclick="beginGame(3)">3 👤👤👤</button>
+            <button class="room-btn room-btn-create" onclick="beginGame(4)">4 👤👤👤👤</button>
+            <button class="room-btn room-btn-cancel" onclick="closeSetup()">Anulo</button>
+        </div>
+    </div>
+
     <div class="modal" id="profileModal">
         <div class="modal-content">
             <h3 id="m-title">Ndrysho Profilin</h3>
@@ -801,8 +811,9 @@
                 document.getElementById('roomCodeDisplay').innerText = roomCode;
                 showWaitRoom();
                 listenRoom();
-                // pastro dhomën kur del
-                roomRef.onDisconnect().remove();
+                // SHËNIM: NUK e fshijmë dhomën kur del/shkon në prapaskenë.
+                // Kështu mund të dërgosh kodin në WhatsApp pa u mbyllur dhoma.
+                // Dhoma mbyllet vetëm kur shtyp "Dil nga Dhoma".
             }).catch(err => alert("Gabim: " + err.message));
         }
 
@@ -827,7 +838,7 @@
                     document.getElementById('roomCodeDisplay').innerText = roomCode;
                     showWaitRoom();
                     listenRoom();
-                    roomRef.child('players/' + myColor).onDisconnect().remove();
+                    // NUK largohemi automatikisht kur shkojmë në prapaskenë (p.sh. kthim te WhatsApp).
                 });
             });
         }
@@ -971,14 +982,20 @@
         // rivendos tabelën në gjendje fillestare (të gjitha figurat në shtëpi)
         function resetGame() {
             order.forEach(color => {
+                const active = activeColors.includes(color);
                 players[color].tokens.forEach((t, i) => {
                     t.dataset.status = "home";
                     t.dataset.pathPos = "-1";
-                    t.style.display = '';
+                    t.style.display = active ? '' : 'none';
                     t.classList.remove('active-turn', 'hop', 'moving');
                     resetTokenStack(t);
                     document.getElementById(`${color}-p${i}`).appendChild(t);
                 });
+                // errëso këndin dhe profilin e lojtarëve që s'luajnë
+                const homeEl = document.querySelector('.' + color + '-home');
+                if (homeEl) homeEl.style.opacity = active ? '1' : '0.25';
+                const prof = document.getElementById('p-' + color);
+                if (prof) prof.style.opacity = active ? '1' : '0.3';
             });
             turnIdx = 0; currentRoll = 0; hasRolled = false;
             extraTurn = false; isAnimating = false; finishOrder = [];
@@ -994,33 +1011,50 @@
                 openRoomModal();
                 return;
             }
+            // Computer / Local -> pyet sa lojtarë
+            pendingMode = (modeName === 'Computer') ? 'computer' : 'local';
+            const lang = document.getElementById('langSelect').value;
+            const t = { sq: "Sa lojtarë?", en: "How many players?", de: "Wie viele Spieler?" }[lang] || "Sa lojtarë?";
+            document.getElementById('setupTitle').innerText = t;
+            document.getElementById('setupModal').style.display = 'flex';
+        }
+
+        function closeSetup() {
+            document.getElementById('setupModal').style.display = 'none';
+            pendingMode = null;
+        }
+
+        function beginGame(count) {
+            const mode = pendingMode;
+            document.getElementById('setupModal').style.display = 'none';
+            pendingMode = null;
+
+            gameMode = mode; // 'computer' | 'local'
+            activeColors = (colorSets[count] || order).slice();
+            aiColors = (mode === 'computer') ? activeColors.filter(c => c !== 'red') : [];
+            finishOrder = [];
+
+            const lang = document.getElementById('langSelect').value;
+            const displayMode = (mode === 'computer') ? langPack[lang].comp : langPack[lang].local;
+            document.getElementById('activeModeTitle').innerText = "Abi King (" + displayMode + ")";
             document.getElementById('homeScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'flex';
-            
-            const lang = document.getElementById('langSelect').value;
-            let displayMode = modeName;
-            if(modeName === 'Computer') displayMode = langPack[lang].comp;
-            if(modeName === 'Local Multiplayer') displayMode = langPack[lang].local;
+            changeLanguage();
 
-            // vendos modin: te Computer DHE Local, ti luan vetëm red, tjerët automatik
-            gameMode = (modeName === 'Computer' || modeName === 'Local Multiplayer') ? 'computer' : 'local';
-            finishOrder = []; // rifillo renditjen
-            if (gameMode === 'computer') {
-                // ti je red; green/yellow/blue luajnë automatik
-                document.getElementById('name-red').innerText = L().you;
-                document.getElementById('name-green').innerText = L().player + " 2";
-                document.getElementById('name-yellow').innerText = L().player + " 3";
-                document.getElementById('name-blue').innerText = L().player + " 4";
-            }
+            // emrat e lojtarëve
+            activeColors.forEach((c, i) => {
+                const nm = (mode === 'computer')
+                    ? (c === 'red' ? L().you : L().player + " " + (i + 1))
+                    : (L().player + " " + (i + 1));
+                const el = document.getElementById('name-' + c);
+                if (el) el.innerText = nm;
+            });
 
-            document.getElementById('activeModeTitle').innerText = "Abi King (" + displayMode + ")";
-            changeLanguage(); // sigurohu që ekrani i lojës është në gjuhën e zgjedhur
-            resetGame();       // fillo nga e para
-            gameActive = true; // loja është tani në progres
-            stopMusic();       // ndal muzikën e menusë
-            if (gameMode === 'computer' && computerColors.includes(order[turnIdx])) {
-                setTimeout(computerPlay, 900);
-            }
+            resetGame();       // fillo nga e para (fsheh lojtarët joaktivë)
+            gameActive = true;
+            stopMusic();
+            turnIdx = 0;
+            if (isAI(order[turnIdx])) setTimeout(computerPlay, 900);
         }
 
         // ===== HYRJA NË LOJË ONLINE =====
@@ -1029,6 +1063,14 @@
             gameMode = 'online'; // online: pa AI, çdo lojtar luan vetë
             gameActive = true;
             stopMusic();
+            // rikthe të gjitha ngjyrat/figurat (nëse më parë u luajt me më pak lojtarë)
+            activeColors = order.slice();
+            aiColors = [];
+            order.forEach(c => {
+                const homeEl = document.querySelector('.' + c + '-home');
+                if (homeEl) homeEl.style.opacity = '1';
+                players[c].tokens.forEach(t => { if (t.dataset.status !== 'finished') t.style.display = ''; });
+            });
             finishOrder = []; // rifillo renditjen
             closeRoomModal();
             document.getElementById('homeScreen').style.display = 'none';
@@ -1250,7 +1292,12 @@
         const order = ["red", "green", "yellow", "blue"];
         let finishOrder = []; // renditja e lojtarëve që mbarojnë
         let gameMode = 'local'; // 'local' | 'computer'
-        const computerColors = ["green", "yellow", "blue"]; // kur mode=computer
+        const computerColors = ["green", "yellow", "blue"]; // (i vjetër, s'përdoret më)
+        let activeColors = ["red", "green", "yellow", "blue"]; // ngjyrat në lojë
+        const colorSets = { 2: ["red", "yellow"], 3: ["red", "green", "yellow"], 4: ["red", "green", "yellow", "blue"] };
+        let aiColors = [];        // ngjyrat që i luan kompjuteri
+        let pendingMode = null;   // 'computer' | 'local' derisa zgjidhet numri
+        function isAI(color) { return aiColors.includes(color); }
         let turnIdx = 0; let currentRoll = 0; let hasRolled = false;
         let extraTurn = false; // hedhje shtesë: kapje ose gur në shtëpi (si Ludo King)
         let gameActive = false; // a është një lojë në progres (ndalet kur kthehesh në menu)
@@ -1326,7 +1373,8 @@
             // ONLINE: vetëm në radhën tënde
             if (onlineMode && order[turnIdx] !== myColor) return;
             // COMPUTER MODE: njeriu hedh zarin vetëm në radhën e vet (red)
-            if (gameMode === 'computer' && order[turnIdx] !== 'red') return;
+            // AI-në s'e hedh dot me dorë; në lokal të gjithë janë njerëz (kalon pajisja)
+            if (isAI(order[turnIdx])) return;
             const dice = document.getElementById('dice');
             currentRoll = Math.floor(Math.random() * 6) + 1;
             soundDice(); // 🔊 tingulli i zarit
@@ -1581,9 +1629,11 @@
 
         // lojtarët aktivë (në online, vetëm ata që janë në dhomë)
         function activePlayers() {
-            return order.filter(c => !onlineMode ||
-                (document.getElementById('p-' + c) &&
-                 document.getElementById('p-' + c).style.opacity !== "0.3"));
+            if (onlineMode) {
+                return order.filter(c => document.getElementById('p-' + c) &&
+                    document.getElementById('p-' + c).style.opacity !== "0.3");
+            }
+            return activeColors.slice(); // lokal/kompjuter: vetëm ngjyrat në lojë
         }
 
         function checkWinCondition(color) {
@@ -1703,7 +1753,7 @@
                 nextTurn();
             } else {
                 // i njëjti lojtar luan përsëri (6, kapje, ose gur në shtëpi)
-                if (gameMode === 'computer' && computerColors.includes(order[turnIdx])) {
+                if (isAI(order[turnIdx])) {
                     setTimeout(computerPlay, 900);
                 }
                 if (onlineMode) updateTurnBanner();
@@ -1714,11 +1764,12 @@
             document.querySelectorAll('.player-profile').forEach(p => p.classList.remove('active-profile'));
             hasRolled = false;
             turnIdx = (turnIdx + 1) % order.length;
-            // kalo radhën te lojtarë që: (online) s'janë në dhomë, OSE kanë mbaruar krejt 4 gurët
+            // kalo radhën te lojtarë: joaktivë (jashtë lojës), (online) jashtë dhome, ose të mbaruar
             let guard = 0;
             while (guard < order.length &&
-                   ( (onlineMode && document.getElementById('name-' + order[turnIdx]) &&
-                      document.getElementById('p-' + order[turnIdx]).style.opacity === "0.3")
+                   ( !activeColors.includes(order[turnIdx])
+                     || (onlineMode && document.getElementById('name-' + order[turnIdx]) &&
+                         document.getElementById('p-' + order[turnIdx]).style.opacity === "0.3")
                      || isPlayerDone(order[turnIdx]) )) {
                 turnIdx = (turnIdx + 1) % order.length;
                 guard++;
@@ -1731,7 +1782,7 @@
             }
 
             // ===== KOMPJUTERI LUAN VETË =====
-            if (gameMode === 'computer' && computerColors.includes(order[turnIdx])) {
+            if (isAI(order[turnIdx])) {
                 setTimeout(computerPlay, 900);
             }
         }
