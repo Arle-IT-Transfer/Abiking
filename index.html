@@ -662,8 +662,28 @@
             win: [523, 659, 784, 1047].map((f, i) => ({ freq: f, start: i * 0.15, dur: 0.28, type: 'triangle', vol: 0.5 }))
         };
 
+        // MUZIKA E MENUS (cikël i këndshëm, gjenerohet si WAV)
+        function buildMusic() {
+            const seg = [], beat = 0.5;
+            const chords = [
+                { bass: 130.81, mel: [523.25, 659.25, 587.33, 659.25] }, // C
+                { bass: 98.00,  mel: [493.88, 587.33, 523.25, 493.88] }, // G
+                { bass: 110.00, mel: [523.25, 659.25, 783.99, 659.25] }, // Am
+                { bass: 87.31,  mel: [698.46, 587.33, 523.25, 440.00] }  // F
+            ];
+            let t = 0;
+            chords.forEach(ch => {
+                seg.push({ freq: ch.bass, start: t, dur: beat * 1.8, type: 'triangle', vol: 0.22 });
+                seg.push({ freq: ch.bass, start: t + beat * 2, dur: beat * 1.8, type: 'triangle', vol: 0.22 });
+                ch.mel.forEach((f, i) => seg.push({ freq: f, start: t + i * beat, dur: beat * 0.9, type: 'sine', vol: 0.17 }));
+                t += beat * 4;
+            });
+            return seg;
+        }
+
         const audioEls = {};
         let audioReady = false;
+        let musicEl = null;
         function initAudio() {
             if (audioReady) return;
             for (const k in soundDefs) {
@@ -671,7 +691,17 @@
                 a.preload = 'auto'; a.playsInline = true;
                 audioEls[k] = a;
             }
+            musicEl = new Audio(synthWav(buildMusic(), 11025));
+            musicEl.loop = true; musicEl.volume = 0.55; musicEl.playsInline = true;
             audioReady = true;
+        }
+        function playMusic() {
+            if (!soundOn || !musicEl) return;
+            try { const p = musicEl.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+        }
+        function stopMusic() {
+            if (!musicEl) return;
+            try { musicEl.pause(); musicEl.currentTime = 0; } catch (e) {}
         }
         // ZHBLLOKIM për iPhone: luaj çdo tingull një herë brenda një prekjeje reale
         function unlockAudio() {
@@ -680,6 +710,9 @@
                 const p = a.play();
                 if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
             });
+            // nëse jemi te menuja (jo në lojë), nis muzikën
+            const home = document.getElementById('homeScreen');
+            if (!gameActive && home && home.style.display !== 'none') playMusic();
         }
         ['touchend', 'pointerdown', 'click', 'keydown'].forEach(ev =>
             document.addEventListener(ev, unlockAudio, { passive: true }));
@@ -701,7 +734,11 @@
             soundOn = !soundOn;
             const btn = document.getElementById('btnSound');
             if (btn) btn.innerText = soundOn ? "🔊 Zëri" : "🔇 Zëri";
-            if (soundOn) unlockAudio();
+            if (soundOn) {
+                unlockAudio();
+            } else {
+                stopMusic();
+            }
         }
 
         // ===== ONLINE STATE =====
@@ -977,6 +1014,7 @@
             changeLanguage(); // sigurohu që ekrani i lojës është në gjuhën e zgjedhur
             resetGame();       // fillo nga e para
             gameActive = true; // loja është tani në progres
+            stopMusic();       // ndal muzikën e menusë
             if (gameMode === 'computer' && computerColors.includes(order[turnIdx])) {
                 setTimeout(computerPlay, 900);
             }
@@ -987,6 +1025,7 @@
             onlineMode = true;
             gameMode = 'online'; // online: pa AI, çdo lojtar luan vetë
             gameActive = true;
+            stopMusic();
             finishOrder = []; // rifillo renditjen
             closeRoomModal();
             document.getElementById('homeScreen').style.display = 'none';
@@ -1156,6 +1195,7 @@
             document.querySelectorAll('.token').forEach(t => t.classList.remove('active-turn'));
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('homeScreen').style.display = 'flex';
+            playMusic(); // rikthe muzikën e menusë
         }
 
         const board = document.getElementById('board');
