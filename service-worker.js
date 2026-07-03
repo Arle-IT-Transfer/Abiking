@@ -1,4 +1,4 @@
-const CACHE = "abiking-v15";
+const CACHE = "abiking-v16";
 const ASSETS = [
   "./index.html",
   "./manifest.json",

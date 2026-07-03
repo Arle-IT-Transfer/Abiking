@@ -703,13 +703,15 @@
             if (!musicEl) return;
             try { musicEl.pause(); musicEl.currentTime = 0; } catch (e) {}
         }
-        // ZHBLLOKIM për iPhone: nis muzikën e para (iPhone lejon një luajtje për prekje),
-        // pastaj zhbllokon efektet.
+        // ZHBLLOKIM për iPhone: nis muzikën e para; efektet zhbllokohen VETËM NJË HERË
+        // (përndryshe do bënin zhurmë në çdo klikim).
+        let audioUnlocked = false;
         function unlockAudio() {
             initAudio();
             const home = document.getElementById('homeScreen');
-            const onMenu = !gameActive && home && home.style.display !== 'none';
-            if (onMenu) playMusic(); // MUZIKA E PARA
+            if (!gameActive && home && home.style.display !== 'none') playMusic();
+            if (audioUnlocked) return; // efektet i zhbllokojmë njëherë të vetme
+            audioUnlocked = true;
             Object.values(audioEls).forEach(a => {
                 const p = a.play();
                 if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
