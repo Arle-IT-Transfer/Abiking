@@ -219,24 +219,29 @@
         }
 
         .token {
-            width: 26px; height: 34px; position: absolute; z-index: 100; cursor: pointer;
+            width: 28px; height: 38px; position: absolute; z-index: 100; cursor: pointer;
             display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
-            filter: drop-shadow(0px 4px 3px rgba(0,0,0,0.45));
-            transition: all 0.15s ease;
+            filter: drop-shadow(0px 5px 4px rgba(0,0,0,0.5));
+            transition: transform 0.15s ease;
         }
-        /* koka e gurit (top rrethor me shkëlqim) */
+        /* KOKA - sferë me shkëlqim (Ludo King style) */
         .token::before {
-            content: ""; width: 62%; padding-top: 62%; border-radius: 50%;
-            background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.9), inherit 55%), inherit;
-            border: 2px solid white; margin-bottom: -22%; z-index: 2;
-            box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3);
+            content: ""; width: 68%; padding-top: 68%; border-radius: 50%;
+            background:
+                radial-gradient(circle at 35% 28%, #fff 0%, rgba(255,255,255,0.55) 15%, transparent 45%),
+                inherit;
+            border: 2px solid rgba(255,255,255,0.92); margin-bottom: -20%; z-index: 3;
+            box-shadow: inset 0 -3px 5px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.25);
         }
-        /* trupi/maja poshtë (pin shape) */
+        /* TRUPI - bazë kambanë e gjerë */
         .token::after {
-            content: ""; width: 78%; height: 68%; background: inherit;
-            border: 2px solid white; z-index: 1;
-            border-radius: 50% 50% 12% 12% / 70% 70% 30% 30%;
-            box-shadow: inset 0 -3px 5px rgba(0,0,0,0.35);
+            content: ""; width: 100%; height: 64%; z-index: 1;
+            background:
+                radial-gradient(ellipse at 38% 20%, rgba(255,255,255,0.4) 0%, transparent 45%),
+                inherit;
+            border: 2px solid rgba(255,255,255,0.92);
+            border-radius: 42% 42% 46% 46% / 75% 75% 30% 30%;
+            box-shadow: inset 0 -5px 7px rgba(0,0,0,0.45), inset 0 3px 4px rgba(255,255,255,0.25);
         }
 
         .token.red { background-color: var(--red); }
@@ -245,11 +250,11 @@
         .token.blue { background-color: var(--blue); }
 
         .token.moving { z-index: 300; }
-        .token.hop { transform: translateY(-8px) scale(1.12); }
+        .token.hop { transform: translateY(-9px) scale(1.15); }
 
         .token.active-turn { 
             animation: tokenJump 0.5s infinite alternate cubic-bezier(0.25, 1, 0.5, 1); 
-            filter: drop-shadow(0px 0px 14px #fff) drop-shadow(0px 5px 3px rgba(0,0,0,0.5));
+            filter: drop-shadow(0px 0px 14px #fff) drop-shadow(0px 5px 4px rgba(0,0,0,0.55));
             z-index: 200; 
         }
 
@@ -1184,14 +1189,17 @@
             if (!hasRolled || token.dataset.color !== order[turnIdx]) return;
             // ONLINE: lëviz vetëm gurët e tu
             if (onlineMode && token.dataset.color !== myColor) return;
+            if (isAnimating) return; // mos lejo klik gjatë animacionit
             const color = token.dataset.color;
             let status = token.dataset.status;
             let currentPos = parseInt(token.dataset.pathPos);
             const tokenId = parseInt(token.dataset.id);
 
+            // ===== DALJE NGA SHTËPIA (me 6) =====
             if (status === "home" && currentRoll === 6) {
                 token.dataset.status = "board";
                 token.dataset.pathPos = players[color].startIdx;
+                document.querySelectorAll('.token').forEach(t => t.classList.remove('active-turn'));
                 placeTokenOnBoard(token, players[color].startIdx, false);
                 checkCapture(color, players[color].startIdx);
                 if (onlineMode) pushMove({ type: 'move', color: color, tokenId: tokenId, pathPos: players[color].startIdx, status: "board" });
@@ -1199,39 +1207,88 @@
                 return;
             }
 
-            if (status === "board") {
-                if (currentPos >= 100) {
-                    let nextHomePos = currentPos + currentRoll;
-                    if (nextHomePos <= 104) {
-                        token.dataset.pathPos = nextHomePos;
-                        placeTokenOnBoard(token, nextHomePos, true);
-                        if (onlineMode) pushMove({ type: 'move', color: color, tokenId: tokenId, pathPos: nextHomePos, status: token.dataset.status });
-                        endMove();
-                    } else {
-                        // s'mund të lëvizë ky gur (kalon 104) → kalo radhën, mos ngec
-                        endMove();
-                    }
-                    return;
-                }
+            if (status !== "board") return;
+
+            // ===== LLOGARIT POZICIONIN FINAL =====
+            let finalPos = currentPos;
+            let stepsToTake = 0;
+
+            if (currentPos >= 100) {
+                // tashmë në rrugën e shtëpisë
+                let nextHomePos = currentPos + currentRoll;
+                if (nextHomePos > 104) { endMove(); return; } // s'mund të lëvizë
+                finalPos = nextHomePos;
+                stepsToTake = currentRoll;
+            } else {
+                // në rrugën kryesore - kontrollo a hyn në shtëpi
                 let nextPos = currentPos;
+                let entersHome = false;
                 for (let i = 0; i < currentRoll; i++) {
                     if (nextPos === players[color].lastIdx) {
                         nextPos = 100 + (currentRoll - i - 1);
-                        if (nextPos <= 104) {
-                            token.dataset.pathPos = nextPos;
-                            placeTokenOnBoard(token, nextPos, true);
-                        }
-                        if (onlineMode) pushMove({ type: 'move', color: color, tokenId: tokenId, pathPos: nextPos, status: token.dataset.status });
-                        endMove(); return;
+                        entersHome = true;
+                        break;
                     }
                     nextPos = (nextPos + 1) % 52;
                 }
-                token.dataset.pathPos = nextPos;
-                placeTokenOnBoard(token, nextPos, false);
-                checkCapture(color, nextPos);
-                if (onlineMode) pushMove({ type: 'move', color: color, tokenId: tokenId, pathPos: nextPos, status: "board" });
-                endMove();
+                if (entersHome && nextPos > 104) { endMove(); return; }
+                finalPos = nextPos;
+                stepsToTake = currentRoll;
             }
+
+            // ===== ANIMO HAP-PAS-HAPI =====
+            document.querySelectorAll('.token').forEach(t => t.classList.remove('active-turn'));
+            animateStepByStep(token, currentPos, stepsToTake, color, () => {
+                token.dataset.pathPos = finalPos;
+                // vendos statusin final
+                if (finalPos === 104) {
+                    token.style.display = 'none';
+                    token.dataset.status = "finished";
+                    checkWinCondition(color);
+                } else if (finalPos < 100) {
+                    checkCapture(color, finalPos);
+                }
+                if (onlineMode) pushMove({ type: 'move', color: color, tokenId: tokenId, pathPos: finalPos, status: token.dataset.status });
+                endMove();
+            });
+        }
+
+        // ecën qelizë-për-qelizë me animacion
+        function animateStepByStep(token, fromIdx, steps, color, onDone) {
+            isAnimating = true;
+            let done = 0;
+            let cur = fromIdx;
+            const stepper = () => {
+                if (done >= steps) {
+                    isAnimating = false;
+                    if (onDone) onDone();
+                    return;
+                }
+                // llogarit qelizën e radhës
+                if (cur >= 100) {
+                    cur = cur + 1;
+                } else if (cur === players[color].lastIdx) {
+                    cur = 100;
+                } else {
+                    cur = (cur + 1) % 52;
+                }
+                // vendos gurin në qelizën e re
+                let coord;
+                if (cur >= 100) {
+                    coord = (cur <= 104) ? homePaths[color][cur - 100] : null;
+                } else {
+                    coord = mainPath[cur];
+                }
+                if (coord && cellsMap[coord]) {
+                    cellsMap[coord].appendChild(token);
+                    token.classList.add('hop');
+                    setTimeout(() => token.classList.remove('hop'), 120);
+                    soundStep(); // 🔊 tik për çdo hap
+                }
+                done++;
+                setTimeout(stepper, 180);
+            };
+            stepper();
         }
 
         // ===== KAPJA E GURËVE =====
