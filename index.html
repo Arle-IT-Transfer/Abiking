@@ -1078,11 +1078,11 @@
             document.getElementById('activeModeTitle').innerText = "Abi King (Online) - " + L().you + ": " + myColor.toUpperCase();
 
             // vendos emrat e lojtarëve realë; hiq profilet boshe
-            const players = data.players || {};
+            const roomPlayers = data.players || {};
             colorOrder.forEach(c => {
                 const profile = document.getElementById('p-' + c);
-                if (players[c]) {
-                    const nm = (c === myColor) ? L().you + " (" + c + ")" : players[c].name;
+                if (roomPlayers[c]) {
+                    const nm = (c === myColor) ? L().you + " (" + c + ")" : roomPlayers[c].name;
                     document.getElementById('name-' + c).innerText = nm;
                 } else {
                     // lojtar që s'ekziston - errëso profilin
