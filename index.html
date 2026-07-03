@@ -1099,6 +1099,7 @@
         let gameMode = 'local'; // 'local' | 'computer'
         const computerColors = ["green", "yellow", "blue"]; // kur mode=computer
         let turnIdx = 0; let currentRoll = 0; let hasRolled = false;
+        let extraTurn = false; // hedhje shtesë: kapje ose gur në shtëpi (si Ludo King)
 
         // ===== FIGURA PIUN 3D (stil Ludo King) =====
         const tokenShades = {
@@ -1218,6 +1219,7 @@
             let status = token.dataset.status;
             let currentPos = parseInt(token.dataset.pathPos);
             const tokenId = parseInt(token.dataset.id);
+            extraTurn = false; // rivendos; aktivizohet nga kapja ose mbërritja në shtëpi
 
             // ===== DALJE NGA SHTËPIA (me 6) =====
             if (status === "home" && currentRoll === 6) {
@@ -1268,6 +1270,7 @@
                 if (finalPos === 104) {
                     token.style.display = 'none';
                     token.dataset.status = "finished";
+                    extraTurn = true; // guri arriti në shtëpi -> hedhje shtesë
                     checkWinCondition(color);
                 } else if (finalPos < 100) {
                     checkCapture(color, finalPos);
@@ -1334,6 +1337,7 @@
                             t.dataset.status = "home";
                             t.dataset.pathPos = "-1";
                             document.getElementById(`${otherColor}-p${t.dataset.id}`).appendChild(t);
+                            extraTurn = true; // e hëngri një gur -> hedhje shtesë
                             soundCapture(); // 🔊 tingulli i kapjes
                             if (onlineMode) pushMove({ type: 'capture', capturedColor: otherColor, capturedTokenId: parseInt(t.dataset.id) });
                         }
@@ -1534,10 +1538,12 @@
             document.querySelectorAll('.token').forEach(t => t.classList.remove('active-turn'));
             hasRolled = false;
             isAnimating = false; // siguro që s'mbetet i bllokuar
-            if (currentRoll !== 6) {
+            const playAgain = ((currentRoll === 6) || extraTurn) && !isPlayerDone(order[turnIdx]);
+            extraTurn = false; // konsumo flamurin
+            if (!playAgain) {
                 nextTurn();
             } else {
-                // roll 6 → luan përsëri. Nëse është kompjuteri, vazhdo automatik.
+                // i njëjti lojtar luan përsëri (6, kapje, ose gur në shtëpi)
                 if (gameMode === 'computer' && computerColors.includes(order[turnIdx])) {
                     setTimeout(computerPlay, 900);
                 }
