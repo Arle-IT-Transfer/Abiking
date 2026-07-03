@@ -928,6 +928,26 @@
             set('room-btn-leave', data.leaveRoom);
         }
 
+        // rivendos tabelën në gjendje fillestare (të gjitha figurat në shtëpi)
+        function resetGame() {
+            order.forEach(color => {
+                players[color].tokens.forEach((t, i) => {
+                    t.dataset.status = "home";
+                    t.dataset.pathPos = "-1";
+                    t.style.display = '';
+                    t.classList.remove('active-turn', 'hop', 'moving');
+                    resetTokenStack(t);
+                    document.getElementById(`${color}-p${i}`).appendChild(t);
+                });
+            });
+            turnIdx = 0; currentRoll = 0; hasRolled = false;
+            extraTurn = false; isAnimating = false; finishOrder = [];
+            const dice = document.getElementById('dice');
+            if (dice) dice.className = 'dice-container dice-1';
+            document.getElementById('winOverlay').style.display = 'none';
+            document.querySelectorAll('.player-profile').forEach(p => p.classList.remove('active-profile'));
+        }
+
         function startGame(modeName) {
             // Play With Friends & Online -> hap dhomën online
             if (modeName === 'Play With Friends' || modeName === 'Online Multiplayer') {
@@ -955,12 +975,18 @@
 
             document.getElementById('activeModeTitle').innerText = "Abi King (" + displayMode + ")";
             changeLanguage(); // sigurohu që ekrani i lojës është në gjuhën e zgjedhur
+            resetGame();       // fillo nga e para
+            gameActive = true; // loja është tani në progres
+            if (gameMode === 'computer' && computerColors.includes(order[turnIdx])) {
+                setTimeout(computerPlay, 900);
+            }
         }
 
         // ===== HYRJA NË LOJË ONLINE =====
         function enterOnlineGame(data) {
             onlineMode = true;
             gameMode = 'online'; // online: pa AI, çdo lojtar luan vetë
+            gameActive = true;
             finishOrder = []; // rifillo renditjen
             closeRoomModal();
             document.getElementById('homeScreen').style.display = 'none';
@@ -1124,7 +1150,10 @@
         }
 
         function backToMenu() {
+            gameActive = false; // ndal lojën: kompjuteri s'vazhdon më
+            isAnimating = false; hasRolled = false;
             if (onlineMode) { leaveRoom(); }
+            document.querySelectorAll('.token').forEach(t => t.classList.remove('active-turn'));
             document.getElementById('gameScreen').style.display = 'none';
             document.getElementById('homeScreen').style.display = 'flex';
         }
@@ -1181,6 +1210,7 @@
         const computerColors = ["green", "yellow", "blue"]; // kur mode=computer
         let turnIdx = 0; let currentRoll = 0; let hasRolled = false;
         let extraTurn = false; // hedhje shtesë: kapje ose gur në shtëpi (si Ludo King)
+        let gameActive = false; // a është një lojë në progres (ndalet kur kthehesh në menu)
 
         // ===== FIGURA PIUN 3D (stil Ludo King) =====
         const tokenShades = {
@@ -1247,6 +1277,7 @@
         }
 
         function rollDice() {
+            if (!gameActive) return;
             if (hasRolled) return;
             initAudio(); // aktivizo tingujt me prekjen e parë
             // ONLINE: vetëm në radhën tënde
@@ -1292,6 +1323,7 @@
         }
 
         function moveToken(token) {
+            if (!gameActive) return;
             if (!hasRolled || token.dataset.color !== order[turnIdx]) return;
             // ONLINE: lëviz vetëm gurët e tu
             if (onlineMode && token.dataset.color !== myColor) return;
@@ -1663,6 +1695,7 @@
 
         // ===== AI: kompjuteri hedh zarin dhe lëviz =====
         function computerPlay() {
+            if (!gameActive) return; // u kthye në menu -> ndal
             if (isAnimating) { setTimeout(computerPlay, 400); return; }
             const color = order[turnIdx];
             const dice = document.getElementById('dice');
@@ -1671,6 +1704,7 @@
             dice.classList.add('dice-spinning');
 
             setTimeout(() => {
+                if (!gameActive) return; // ndal edhe brenda vonesës
                 dice.classList.remove('dice-spinning');
                 dice.className = `dice-container dice-${currentRoll}`;
                 hasRolled = true;
