@@ -621,9 +621,29 @@
             }
             if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
         }
+        // ZHBLLOKIM për iPhone/Safari: zëri duhet nisur me një prekje reale.
+        // Krijon kontekstin, e zgjon, dhe luan një tingull të heshtur për ta "çelur".
+        function unlockAudio() {
+            initAudio();
+            if (!audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            try {
+                const buf = audioCtx.createBuffer(1, 1, 22050);
+                const src = audioCtx.createBufferSource();
+                src.buffer = buf; src.connect(audioCtx.destination); src.start(0);
+            } catch (e) {}
+        }
+        // dëgjo prekjen/klikun e parë kudo në faqe
+        ['touchend', 'pointerdown', 'click', 'keydown'].forEach(ev =>
+            document.addEventListener(ev, unlockAudio, { passive: true }));
+        // rizgjo zërin kur aplikacioni kthehet në plan të parë (PWA në iPhone)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+        });
         // një ton i thjeshtë
         function beep(freq, dur, type = 'sine', vol = 0.2, delay = 0) {
             if (!soundOn || !audioCtx) return;
+            if (audioCtx.state === 'suspended') audioCtx.resume(); // sigurohu që s'është "fjetur"
             const t = audioCtx.currentTime + delay;
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
