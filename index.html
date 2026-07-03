@@ -611,79 +611,97 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // ===== TINGUJT (Web Audio - gjenerohen, pa skedarë) =====
-        let audioCtx = null;
+        // ===== TINGUJT (skedarë WAV të gjeneruar; luhen si media -> dëgjohen edhe në silent) =====
         let soundOn = true;
-        function initAudio() {
-            if (!audioCtx) {
-                try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-                catch(e) { soundOn = false; }
+
+        // ndërto një WAV (PCM 16-bit mono) nga segmente tonesh dhe kthe data URI
+        function synthWav(segments, sampleRate = 22050) {
+            let total = 0;
+            segments.forEach(s => total = Math.max(total, s.start + s.dur));
+            total += 0.03;
+            const n = Math.floor(total * sampleRate);
+            const data = new Float32Array(n);
+            segments.forEach(s => {
+                const s0 = Math.floor(s.start * sampleRate);
+                const len = Math.floor(s.dur * sampleRate);
+                for (let i = 0; i < len; i++) {
+                    const idx = s0 + i; if (idx >= n) break;
+                    const t = i / sampleRate;
+                    const cyc = (s.freq * t) % 1;
+                    let v;
+                    if (s.type === 'square') v = cyc < 0.5 ? 1 : -1;
+                    else if (s.type === 'sawtooth') v = 2 * cyc - 1;
+                    else if (s.type === 'triangle') v = 2 * Math.abs(2 * cyc - 1) - 1;
+                    else v = Math.sin(2 * Math.PI * s.freq * t);
+                    const env = Math.min(1, i / (0.005 * sampleRate)) * Math.max(0, 1 - i / len);
+                    data[idx] += v * s.vol * env;
+                }
+            });
+            const buffer = new ArrayBuffer(44 + n * 2);
+            const view = new DataView(buffer);
+            const ws = (o, str) => { for (let i = 0; i < str.length; i++) view.setUint8(o + i, str.charCodeAt(i)); };
+            ws(0, 'RIFF'); view.setUint32(4, 36 + n * 2, true); ws(8, 'WAVE');
+            ws(12, 'fmt '); view.setUint32(16, 16, true); view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true); view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true);
+            ws(36, 'data'); view.setUint32(40, n * 2, true);
+            let off = 44;
+            for (let i = 0; i < n; i++) {
+                let x = Math.max(-1, Math.min(1, data[i]));
+                view.setInt16(off, x < 0 ? x * 0x8000 : x * 0x7FFF, true); off += 2;
             }
-            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+            let bin = ''; const bytes = new Uint8Array(buffer);
+            for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+            return 'data:audio/wav;base64,' + btoa(bin);
         }
-        // ZHBLLOKIM për iPhone/Safari: zëri duhet nisur me një prekje reale.
-        // Krijon kontekstin, e zgjon, dhe luan një tingull të heshtur për ta "çelur".
+
+        const soundDefs = {
+            dice: (() => { const a = []; for (let i = 0; i < 6; i++) a.push({ freq: 320 + i * 40, start: i * 0.07, dur: 0.05, type: 'square', vol: 0.35 }); a.push({ freq: 520, start: 0.5, dur: 0.12, type: 'triangle', vol: 0.5 }); return a; })(),
+            step: [{ freq: 660, start: 0, dur: 0.06, type: 'triangle', vol: 0.5 }],
+            capture: [{ freq: 700, start: 0, dur: 0.1, type: 'sawtooth', vol: 0.5 }, { freq: 500, start: 0.08, dur: 0.1, type: 'sawtooth', vol: 0.5 }, { freq: 300, start: 0.16, dur: 0.18, type: 'sawtooth', vol: 0.5 }],
+            win: [523, 659, 784, 1047].map((f, i) => ({ freq: f, start: i * 0.15, dur: 0.28, type: 'triangle', vol: 0.5 }))
+        };
+
+        const audioEls = {};
+        let audioReady = false;
+        function initAudio() {
+            if (audioReady) return;
+            for (const k in soundDefs) {
+                const a = new Audio(synthWav(soundDefs[k]));
+                a.preload = 'auto'; a.playsInline = true;
+                audioEls[k] = a;
+            }
+            audioReady = true;
+        }
+        // ZHBLLOKIM për iPhone: luaj çdo tingull një herë brenda një prekjeje reale
         function unlockAudio() {
             initAudio();
-            if (!audioCtx) return;
-            if (audioCtx.state === 'suspended') audioCtx.resume();
-            try {
-                const buf = audioCtx.createBuffer(1, 1, 22050);
-                const src = audioCtx.createBufferSource();
-                src.buffer = buf; src.connect(audioCtx.destination); src.start(0);
-            } catch (e) {}
+            Object.values(audioEls).forEach(a => {
+                const p = a.play();
+                if (p && p.then) p.then(() => { a.pause(); a.currentTime = 0; }).catch(() => {});
+            });
         }
-        // dëgjo prekjen/klikun e parë kudo në faqe
         ['touchend', 'pointerdown', 'click', 'keydown'].forEach(ev =>
             document.addEventListener(ev, unlockAudio, { passive: true }));
-        // rizgjo zërin kur aplikacioni kthehet në plan të parë (PWA në iPhone)
-        document.addEventListener('visibilitychange', () => {
-            if (!document.hidden && audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-        });
-        // një ton i thjeshtë
-        function beep(freq, dur, type = 'sine', vol = 0.2, delay = 0) {
-            if (!soundOn || !audioCtx) return;
-            if (audioCtx.state === 'suspended') audioCtx.resume(); // sigurohu që s'është "fjetur"
-            const t = audioCtx.currentTime + delay;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.type = type;
-            osc.frequency.setValueAtTime(freq, t);
-            gain.gain.setValueAtTime(0.0001, t);
-            gain.gain.exponentialRampToValueAtTime(vol, t + 0.01);
-            gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-            osc.connect(gain); gain.connect(audioCtx.destination);
-            osc.start(t); osc.stop(t + dur + 0.02);
+
+        function playSound(k) {
+            if (!soundOn) return;
+            if (!audioReady) initAudio();
+            const a = audioEls[k]; if (!a) return;
+            try { a.currentTime = 0; const p = a.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
         }
-        // ZARI: seri klikimesh të shpejta (si rrotullim)
-        function soundDice() {
-            if (!soundOn || !audioCtx) return;
-            for (let i = 0; i < 6; i++) {
-                beep(320 + Math.random() * 260, 0.05, 'square', 0.12, i * 0.08);
-            }
-            beep(520, 0.12, 'triangle', 0.2, 0.5); // "ulja" e zarit
-        }
-        // HAPI: një "tik" i shkurtër kur guri ecën
-        function soundStep() {
-            beep(660, 0.06, 'triangle', 0.18);
-        }
-        // KAPJA: rënie tonesh (whoosh) kur heq gurin
-        function soundCapture() {
-            if (!soundOn || !audioCtx) return;
-            beep(700, 0.1, 'sawtooth', 0.22, 0);
-            beep(500, 0.1, 'sawtooth', 0.22, 0.08);
-            beep(300, 0.18, 'sawtooth', 0.22, 0.16);
-        }
-        // FITORJA
-        function soundWin() {
-            [523, 659, 784, 1047].forEach((f, i) => beep(f, 0.25, 'triangle', 0.25, i * 0.15));
-        }
+
+        function soundDice()    { playSound('dice'); }
+        function soundStep()    { playSound('step'); }
+        function soundCapture() { playSound('capture'); }
+        function soundWin()     { playSound('win'); }
+
         // ndez/fik zërin
         function toggleSound() {
             soundOn = !soundOn;
             const btn = document.getElementById('btnSound');
             if (btn) btn.innerText = soundOn ? "🔊 Zëri" : "🔇 Zëri";
-            if (soundOn) initAudio();
+            if (soundOn) unlockAudio();
         }
 
         // ===== ONLINE STATE =====
