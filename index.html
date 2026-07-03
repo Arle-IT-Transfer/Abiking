@@ -1063,15 +1063,11 @@
             gameMode = 'online'; // online: pa AI, çdo lojtar luan vetë
             gameActive = true;
             stopMusic();
-            // rikthe të gjitha ngjyrat/figurat (nëse më parë u luajt me më pak lojtarë)
-            activeColors = order.slice();
+            // aktivizo VETËM ngjyrat e lojtarëve realë që janë në dhomë
+            activeColors = order.filter(c => (data.players || {})[c]);
             aiColors = [];
-            order.forEach(c => {
-                const homeEl = document.querySelector('.' + c + '-home');
-                if (homeEl) homeEl.style.opacity = '1';
-                players[c].tokens.forEach(t => { if (t.dataset.status !== 'finished') t.style.display = ''; });
-            });
             finishOrder = []; // rifillo renditjen
+            resetGame();      // fillo nga e para: fsheh figurat/këndet e ngjyrave pa lojtarë
             closeRoomModal();
             document.getElementById('homeScreen').style.display = 'none';
             document.getElementById('gameScreen').style.display = 'flex';
